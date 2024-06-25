@@ -35,7 +35,7 @@ public class BigFlowThreeService {
         variables.put("yes", "ssss"); 
         variables.put("vixe", "ssss");          
         System.out.println("Dando start no processo com 3 variáveis");     
-        runtimeService.startProcessInstanceByKey("process3",variables);
+        runtimeService.startProcessInstanceByKey("processBigFlows",variables);
     }
 
     public void startProcessByKey(String key) {
