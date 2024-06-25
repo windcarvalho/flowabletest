@@ -27,9 +27,10 @@ import java.util.List;
 
 public class GenFlowableFlowsV2 {
 
-	static double LAST_X = 150;
-	static double WIDTH = 150;
-	static double HEIGHT = 75;
+	static double LAST_X = 50;
+	static double LAST_Y = 100; 
+	static double WIDTH = 70;
+	static double HEIGHT = 50;
 
 	public static List<Integer> wayPoint(int[] coords) {
 		ArrayList<Integer> ai = new ArrayList<Integer>();
@@ -39,15 +40,28 @@ public class GenFlowableFlowsV2 {
 		return ai;
 	}
 
-	public static void positionAndSkip(BpmnModel model, final FlowElement fe) {
+	public static void positionAndSkip2(BpmnModel model, final FlowElement fe, boolean changeY) {}
+	public static void positionAndSkip(BpmnModel model, final FlowElement fe, boolean changeY) {
+		
+		
 		GraphicInfo gi = new GraphicInfo();
 
 		gi.setX(LAST_X);
+		gi.setY(LAST_Y);
 		gi.setWidth(WIDTH);
 		gi.setHeight(HEIGHT);
 
+		
+		if(changeY){
+			LAST_Y = LAST_Y + 2*HEIGHT;
+			System.out.println("mudou o Y:"+ LAST_Y);
+			LAST_X = 50;
+		}
+		LAST_X += 2 * WIDTH;
+		System.out.println("mudou o X:"+ LAST_X);
 		if (fe instanceof EndEvent) {
-			gi.setY(HEIGHT * 1.5);
+			System.out.println("Aqui no fim");
+			gi.setY(LAST_Y);
 		}
 
 		if (fe instanceof EndEvent || fe instanceof StartEvent || fe instanceof Gateway) {
@@ -55,10 +69,11 @@ public class GenFlowableFlowsV2 {
 			gi.setHeight(HEIGHT);
 		}
 
+		
 		gi.setElement(fe);
 		model.addGraphicInfo(fe.getId(), gi);
 
-		LAST_X += 2 * WIDTH;
+		
 	}
 
 	public static BpmnModel genBigBoy( int tasks, int vars, int varLength)
@@ -68,7 +83,7 @@ public class GenFlowableFlowsV2 {
 		 BpmnModel bpmnModel = new BpmnModel();
 		 Process process = new Process();
 		    bpmnModel.addProcess(process);
-		    process.setId("processBigFlows");
+		    process.setId("sequentialProcess_"+tasks);
 		    process.setName(tasks+" tasks");
 			
 		
@@ -77,13 +92,13 @@ public class GenFlowableFlowsV2 {
         startEvent.setId("start");
         
         process.addFlowElement(startEvent);        
-        positionAndSkip( bpmnModel, startEvent );
+        positionAndSkip( bpmnModel, startEvent, false );
 
 		// final node
         EndEvent endEvent = new EndEvent();
         endEvent.setId("finish");       
-        positionAndSkip(bpmnModel, endEvent);
-        bpmnModel.getGraphicInfo(endEvent.getId()).setY(0);
+        //positionAndSkip(bpmnModel, endEvent, false);
+        //bpmnModel.getGraphicInfo(endEvent.getId()).setY(0);
         
         
         UserTask lastUserTask = null;
@@ -105,6 +120,7 @@ public class GenFlowableFlowsV2 {
    				//
    				//process.addFlowElement(new SequenceFlow("start", name ));
    	   			edges.add(new SequenceFlow("start", name )); 
+				positionAndSkip(bpmnModel, lastUserTask, false);
    			 }
    			 else
    			 {
@@ -126,8 +142,8 @@ public class GenFlowableFlowsV2 {
 				gate.setExclusive(true);
 				
 				process.addFlowElement(gate);
-				positionAndSkip(bpmnModel, gate);
-
+				
+				positionAndSkip(bpmnModel, gate, false);
 				process.addFlowElement(new SequenceFlow("userTask_1", gid)); //Gateway saindo da primeira Task
 				
 				SequenceFlow pass = new SequenceFlow( gate.getId(), lastUserTask.getId() ); //yes vai para segundo task
@@ -154,6 +170,13 @@ public class GenFlowableFlowsV2 {
     	   		//process.addFlowElement(new SequenceFlow(lastUserTask.getId(), name ));
     	   		edges.add(new SequenceFlow(lastUserTask.getId(), name ));
     	   		lastUserTask = currUserTask;
+				
+
+				if(t % 10 == 0){
+					positionAndSkip(bpmnModel, lastUserTask, true);
+				}else{
+					positionAndSkip(bpmnModel, lastUserTask, false);
+				}
    			 }
 			}
    			//positionAndSkip(bpmnModel, lastUserTask);
@@ -181,25 +204,24 @@ public class GenFlowableFlowsV2 {
         for( SequenceFlow sf : edges )
         {             
         	process.addFlowElement( sf );
+			
         	
         }
         
         process.addFlowElement(new SequenceFlow(lastUserTask.getId(), endEvent.getId() ));
 		process.addFlowElement(endEvent);
+		positionAndSkip(bpmnModel, endEvent, false);
 		 return bpmnModel;
 	}
 
 	public static void main(String[] args)
 			throws Exception {
 
-		int[] empId = {50};
-		/*
-		 * int[] empId = {5, 10, 25,
-		 * 50, 100,150,
-		 * 200,250,300,
-		 * 350,400,450,500};
-		 */
-		System.out.println("Generating big flows on Flowable");
+		
+		
+		  //int[] empId = {5, 10, 25,50, 100,200,300,500,1000};
+		  int[] empId = {33};
+		 		System.out.println("Generating big flows on Flowable");
 		for (int fg : empId)
 			try {
 				long before = System.currentTimeMillis();
@@ -222,7 +244,7 @@ public class GenFlowableFlowsV2 {
 
 				// do you wanna save it?
 				// File file = new File("flowable-big-boy-fg"+ fg +".bpmn");
-				File file = new File("process" + fg + ".bpmn");
+				File file = new File("sequentialFlow_" + fg + ".bpmn");
 				FileWriter fw = new FileWriter(file);
 				fw.write(xml);
 				fw.close();
